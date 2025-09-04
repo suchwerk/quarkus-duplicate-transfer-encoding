@@ -11,11 +11,42 @@ import io.restassured.response.Response;
 
 @QuarkusTest
 class GreetingResourceTest {
-    
+    /**
+     * This test calls /hello/delegate
+     * The endpoint generates a large JSON payload internally
+     * and returns it. It should not produce duplicate Transfer-Encoding headers.
+     */
+    @Test
+    void testDelegateEndpoint() {
+        Response response = given()
+                .contentType("application/json")
+                .body("{\"key\":\"value\"}")
+                .when().post("/hello/delegate");
+
+        // check HTTP 200
+        response.then().statusCode(200);
+
+        Log.info(response.getHeaders().asList());
+        
+        // get all Content-Encoding headers (including duplicates)
+        var transferEncodingHeaders = response.getHeaders().getValues("Transfer-Encoding");
+
+        Log.info(transferEncodingHeaders);
+
+        // assert that we got duplicates
+        assertTrue(transferEncodingHeaders.size() == 1,
+                "Expected one transfer-encoding header but got: " + transferEncodingHeaders);
+    }
+
+    /**
+     * This test calls /hello
+     * The endpoint calls /hello/delegate via a restclient and returns the response.
+     * It may produce duplicate Transfer-Encoding headers.
+     */
     @Test
     void testHelloEndpoint() {
         Response response = given()
-                .contentType("application/json")   // 👈 tell Quarkus it's JSON              
+                .contentType("application/json")
                 .body("{\"key\":\"value\"}")
                 .when().post("/hello");
 
@@ -23,14 +54,15 @@ class GreetingResourceTest {
         response.then().statusCode(200);
 
         Log.info(response.getHeaders().asList());
+
         // get all Content-Encoding headers (including duplicates)
-        var transferEncodingHeaders = response.getHeaders().getValues("transfer-encoding");
+        var transferEncodingHeaders = response.getHeaders().getValues("Transfer-Encoding");
 
         Log.info(transferEncodingHeaders);
 
         // assert that we got duplicates
-        assertTrue(transferEncodingHeaders.size() < 2, 
-            "Expected max. one transfer-encoding header but got: " + transferEncodingHeaders);
+        assertTrue(transferEncodingHeaders.size() == 1,
+                "Expected one transfer-encoding header but got: " + transferEncodingHeaders);
     }
 
 }

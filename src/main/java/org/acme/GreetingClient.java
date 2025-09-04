@@ -11,7 +11,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 @Path("/hello")
-@RegisterRestClient(baseUri = "http://localhost:8080")
+@RegisterRestClient(baseUri = "http://localhost:55555")
 public interface GreetingClient {
 
     @Path("delegate")
